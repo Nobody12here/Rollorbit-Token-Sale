@@ -4,7 +4,7 @@ import { sepolia, mainnet, arbitrum } from 'viem/chains';
 import { readContract, writeContract } from '@wagmi/core'
 import { erc20ABI } from '@wagmi/core'
 import presaleABI from '../abi/presaleABI.js';
-
+let walletConnected = localStorage.getItem('walletConnected') === 'true' ? true : false;
 const projectId = 'eb79a9946b4e4b2ae10c8531e04aac3f'
 const presaleAddress = '0x34d4cd28C6c3d310C5FB6F7B110339b15F503AA0';
 const TokenAddress = '0x6786a1091e78C3C2Ae1fC789ebab5c575e0c6847';
@@ -23,28 +23,39 @@ const wagmiConfig = defaultWagmiConfig({ chains, projectId, metadata })
 // 3. Create modal
 const modal = createWeb3Modal({ wagmiConfig, projectId, chains })
 function connect() {
-  const buttons = document.getElementsByClassName("wallet-connect");
   if (getAccount().isConnected) {
     disconnect()
-    
-    for (let index = 0; index < buttons .length; index++) {
-      const btn = buttons[index];
-      btn.innerText = "Connect Wallet";
-    }
-    
+    walletConnected = false;
+    changeWalletConnectStatus();
   } else {
     modal.open()
-    for (let index = 0; index < buttons .length; index++) {
-      const btn = buttons[index];
-      btn.innerText = "Wallet Connected";
+    walletConnected = true;
+    changeWalletConnectStatus();
+  }
+  localStorage.setItem('walletConnected', walletConnected);
+  console.log(walletConnected);
+  
+}
+
+function changeWalletConnectStatus() {
+  const buttons = document.getElementsByClassName("wallet-connect");
+  for (let index = 0; index < buttons.length; index++) {
+    const btn = buttons[index];
+    let text = ""
+    if (walletConnected) {
+      text = "Wallet Connected";
     }
+    else {
+      text = "Connect Wallet";
+    }
+    btn.innerText = text;
   }
 }
 
 const connectWalletBtns = document.getElementsByClassName('wallet-connect')
 
 for (let index = 0; index < connectWalletBtns.length; index++) {
-  connectWalletBtns[index].addEventListener('click', ()=>{connect()});
+  connectWalletBtns[index].addEventListener('click', () => { connect() });
 
 }
 function BNBPriceCalculation(tokenAmount) {
@@ -70,6 +81,8 @@ function updateSellBNBAmount() {
 }
 
 async function handlePurchaseClick() {
+
+  
   const tokenAmount = document.getElementById('token-amount').value;
   try {
     toggleSpinner();
@@ -88,12 +101,19 @@ async function handlePurchaseClick() {
     console.log(error.message)
     alert(error.message)
   }
-  finally{
+  finally {
     toggleSpinner();
   }
 }
 
 async function handleSellClick() {
+  //Scroll to the top of the page 
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth' // or 'auto' for instant scrolling
+  });
+
   const tokenAmount = document.getElementById('sell-token-amount').value;
   try {
     toggleSpinner();
@@ -103,9 +123,9 @@ async function handleSellClick() {
       abi: erc20ABI,
       address: TokenAddress,
       functionName: "approve",
-      args: [presaleAddress,tokenAmount*10**18],
+      args: [presaleAddress, tokenAmount * 10 ** 18],
     })
-    const txReceipt2 = await waitForTransaction({hash:approvalHash.hash});
+    const txReceipt2 = await waitForTransaction({ hash: approvalHash.hash });
     const hash = await writeContract({
       abi: presaleABI,
       address: presaleAddress,
@@ -116,13 +136,13 @@ async function handleSellClick() {
       hash: hash.hash
     })
     console.log("Tx Receipt = ", txReceipt);
-    
-    alert("Purchased sucessfully!")
+
+    alert("Sold sucessfully!")
   } catch (error) {
     console.log(error)
     alert(error)
   }
-  finally{
+  finally {
     toggleSpinner();
   }
 }
@@ -131,20 +151,26 @@ function toggleSpinner() {
   var spinner = document.getElementsByClassName('spinner-container')[0];
   console.log(spinner)
   if (spinner.style.display === 'none') {
-      spinner.style.display = '';
+    spinner.style.display = '';
   } else {
-      spinner.style.display = 'none';
+    spinner.style.display = 'none';
   }
 }
 
+function showWhitePaper(){
+  alert("Whitepaper launching soon")
+}
 //Event handlers 
+const whitePaperIcon = document.getElementsByClassName('white-paper')[0];
+whitePaperIcon.addEventListener('click',showWhitePaper);
 const purchaseButton = document.getElementById("purchase-tokens");
 const tokenAmountField = document.getElementById("token-amount");
 const sellTokenAmountField = document.getElementById("sell-token-amount");
 const sellTokenButton = document.getElementById('sell-tokens')
-tokenAmountField.addEventListener('input',  updateBNBAmount);
-sellTokenAmountField.addEventListener('input',  updateSellBNBAmount);
 
+tokenAmountField.addEventListener('input', updateBNBAmount);
+sellTokenAmountField.addEventListener('input', updateSellBNBAmount);
 purchaseButton.addEventListener('click', handlePurchaseClick);
+
 sellTokenButton.addEventListener('click', handleSellClick);
 
